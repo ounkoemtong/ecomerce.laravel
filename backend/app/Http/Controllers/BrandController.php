@@ -24,7 +24,9 @@ class BrandController extends Controller
             'logo'=>'nullable|string',
         ]);
 
-        if ($validator->fails()){
+        if ($validator->fails()
+            
+            ){
            return  response()->json([
                 'message'=>'error with validate !',
                 'error'=>$validator->errors(),
@@ -75,6 +77,12 @@ class BrandController extends Controller
             'status'=>'active',
 
         ]);
+
+        return response()->json([
+            'message'=>'update success !',
+            'update'=>$find
+
+        ]);
     }
 
     public function destroy ($id){
@@ -94,6 +102,23 @@ class BrandController extends Controller
             'delete'=>$find
         ]);
 
+
+    }
+    public function show($id){
+        $find = BrandModel::find($id);
+
+        if (!$find){
+            return response()->json([
+                'message'=>'brand not found !',
+            ]);
+
+        }
+
+        return response()->json([
+            'success'=>true,
+            'message'=>'brande found !',
+            'brand'=>$find
+        ]);
 
     }
 }
