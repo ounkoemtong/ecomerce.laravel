@@ -4,29 +4,46 @@ use App\Http\Controllers\AddressController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductImageController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WishListController;
-use PHPUnit\Metadata\Group;
 
 Route::post('/register',[AuthController::class,'Register']);
 Route::post('/login',[AuthController::class,"login"]);
 
+Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
+Route::apiResource('brands', BrandController::class)->only(['index', 'show']);
+Route::apiResource('products', ProductController::class)->only(['index', 'show']);
 
 
 Route::middleware('auth:sanctum')->group(function(){
     Route::post('/logout',[AuthController::class,'logout']);
 
-
-
-});
-
-    Route::apiResource('roles',RoleController::class);
-    Route::apiResource('users',UserController::class);
     Route::apiResource('address',AddressController::class);
-    Route::apiResource('categories',CategoryController::class);
-    Route::apiResource('brands',BrandController::class);
-    Route::apiResource('products',ProductController::class);
+    Route::apiResource('carts',CartController::class);
+    Route::apiResource('reviews',ReviewController::class);
     Route::apiResource('wishlists',WishListController::class);
+
+    Route::apiResource('orders',OrderController::class)->only(['index', 'store', 'show']);
+
+    Route::middleware('role:admin')->group(function () {
+        Route::apiResource('roles',RoleController::class);
+        Route::apiResource('users',UserController::class);
+        Route::apiResource('categories',CategoryController::class)->except(['index', 'show']);
+        Route::apiResource('brands',BrandController::class)->except(['index', 'show']);
+        Route::apiResource('products',ProductController::class)->except(['index', 'show']);
+        Route::apiResource('product-images',ProductImageController::class);
+        Route::apiResource('orders',OrderController::class)->only(['update', 'destroy']);
+        Route::apiResource('payments',PaymentController::class);
+        Route::apiResource('shippings',ShippingController::class);
+    });
+});
+   

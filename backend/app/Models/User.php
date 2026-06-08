@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -24,4 +26,19 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(OrderModel::class, 'user_id');
+    }
+
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(RoleModel::class, 'role_id');
+    }
+
+    public function cartItems(): HasMany
+    {
+        return $this->hasMany(CartModel::class, 'user_id');
+    }
 }

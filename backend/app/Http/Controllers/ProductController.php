@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProductRequest;
+use App\Http\Resources\ProductResource;
 use App\Models\ProductModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Throwable;
 
@@ -21,29 +22,8 @@ class ProductController extends Controller
         return $upload['secure_url'];
     }
 
-    public function store(Request $request)
+    public function store(ProductRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'category_id' => 'required|integer|exists:categories,id',
-            'brand_id' => 'required|integer|exists:brands,id',
-            'name' => 'required|string',
-            'slug' => 'nullable|string',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric',
-            'discount_price' => 'nullable|numeric',
-            'stock_qty' => 'required|integer',
-            'sku' => 'required|string|unique:products,sku',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation Error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         $imageUrl = null;
 
         if ($request->hasFile('image')) {
@@ -62,33 +42,52 @@ class ProductController extends Controller
             }
         }
 
+        $data = $request->validated();
+        unset($data['image']);
+
         $product = ProductModel::create([
-            'category_id' => $request->category_id,
-            'brand_id' => $request->brand_id,
-            'name' => $request->name,
-            'slug' => $request->slug,
-            'description' => $request->description,
-            'price' => $request->price,
-            'discount_price' => $request->discount_price,
-            'stock_qty' => $request->stock_qty,
-            'sku' => $request->sku,
+            ...$data,
             'image' => $imageUrl,
-            'status' => 'active',
+            'status' => $data['status'] ?? 'active',
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Product created successfully',
-            'product' => $product
+            'product' => new ProductResource($product),
         ], 201);
     }
 
-    public function index()
+    public function index(Request $request)
     {
+        $products = ProductModel::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->input('search');
+
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->filled('category_id'), fn ($query) => $query->where('category_id', $request->category_id))
+            ->when($request->filled('brand_id'), fn ($query) => $query->where('brand_id', $request->brand_id))
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
+            ->when($request->filled('min_price'), fn ($query) => $query->where('price', '>=', $request->min_price))
+            ->when($request->filled('max_price'), fn ($query) => $query->where('price', '<=', $request->max_price));
+
+        $sort = $request->input('sort', 'newest');
+
+        match ($sort) {
+            'price_low' => $products->orderBy('price'),
+            'price_high' => $products->orderByDesc('price'),
+            'name' => $products->orderBy('name'),
+            default => $products->latest(),
+        };
+
         return response()->json([
             'message' => 'product found',
-            'products' => ProductModel::all(),
-
+            'products' => ProductResource::collection($products->paginate($request->integer('per_page', 12))),
         ]);
     }
 
@@ -106,12 +105,12 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'product found',
-            'product' => $findById
+            'product' => new ProductResource($findById)
 
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function update(ProductRequest $request, $id)
     {
         $find = ProductModel::find($id);
 
@@ -120,27 +119,6 @@ class ProductController extends Controller
                 'success' => false,
                 'message' => 'product not found !'
             ], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'category_id' => 'required|integer|exists:categories,id',
-            'brand_id' => 'required|integer|exists:brands,id',
-            'name' => 'required|string',
-            'slug' => 'nullable|string',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric',
-            'discount_price' => 'nullable|numeric',
-            'stock_qty' => 'required|integer',
-            'sku' => 'required|string|unique:products,sku,' . $id,
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'validate error',
-                'error' => $validator->errors()
-            ], 422);
         }
 
         $imageUrl = $find->image;
@@ -162,23 +140,19 @@ class ProductController extends Controller
             }
         }
 
+        $data = $request->validated();
+        unset($data['image']);
+
         $find->update([
-            'category_id' => $request->category_id,
-            'brand_id' => $request->brand_id,
-            'name' => $request->name,
-            'slug' => $request->slug,
-            'description' => $request->description,
-            'price' => $request->price,
-            'discount_price' => $request->discount_price,
-            'stock_qty' => $request->stock_qty,
-            'sku' => $request->sku,
+            ...$data,
             'image' => $imageUrl,
-            'status' => 'active',
+            'status' => $data['status'] ?? 'active',
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'product update successfully',
+            'product' => new ProductResource($find->fresh()),
 
         ]);
     }

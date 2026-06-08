@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductModel extends Model
 
@@ -23,6 +24,15 @@ class ProductModel extends Model
     'image',
     'status',
 ];
-    
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImageModel::class, 'product_id');
+    }
+
+    public function cartItems(): HasMany
+    {
+        return $this->hasMany(CartModel::class, 'product_id');
+    }
 
 }
