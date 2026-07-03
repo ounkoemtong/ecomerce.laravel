@@ -16,6 +16,8 @@ class EnsureUserHasRole
             return response()->json([
                 'success' => false,
                 'message' => 'You do not have permission to access this resource.',
+                'errors' => [],
+                'data' => [],
             ], 403);
         }
 

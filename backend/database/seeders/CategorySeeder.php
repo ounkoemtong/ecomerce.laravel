@@ -3,8 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\CategoryModel;
-use App\Models\ProductModel;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class CategorySeeder extends Seeder
@@ -15,16 +13,32 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         CategoryModel::create([
-            "name"=>"coca",
-            "slug"=>"coca",
-            "description"=>"hello god",
-            "status"=>"active",
+            "name" => "New Season",
+            "slug" => "new-season",
+            "description" => "Latest arrivals and fresh trends for the season.",
+            "status" => "active",
         ]);
+
         CategoryModel::create([
-            "name"=>"pepsi",
-            "slug"=>"pepsi",
-            "description"=>"hello god",
-            "status"=>"active",
+            "name" => "Outerwear",
+            "slug" => "outerwear",
+            "description" => "Tailored wool coats, classic trench coats, and layering essentials.",
+            "status" => "active",
+        ]);
+
+        CategoryModel::create([
+            "name" => "Footwear",
+            "slug" => "footwear",
+            "description" => "Italian crafted leather boots, minimal sandals, and refined heels.",
+            "status" => "active",
+        ]);
+
+        CategoryModel::create([
+            "name" => "Accessories",
+            "slug" => "accessories",
+            "description" => "Structural bags, handcrafted jewelry, and signature accents.",
+            "status" => "active",
         ]);
     }
 }
+

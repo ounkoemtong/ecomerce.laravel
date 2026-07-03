@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\OrderModel;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,24 +10,26 @@ class OrderUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user() !== null;
     }
 
     public function rules(): array
     {
-        $orderId = $this->route('order') ?? $this->route('id');
-
         return [
-            'user_id' => ['required', 'integer', 'exists:users,id'],
-            'address_id' => ['required', 'integer', 'exists:addresses,id'],
-            'order_number' => ['required', 'string', Rule::unique('orders', 'order_number')->ignore($orderId)],
-            'subtotal' => ['required', 'numeric', 'min:0'],
-            'discount' => ['required', 'numeric', 'min:0'],
-            'shipping_fee' => ['required', 'numeric', 'min:0'],
-            'total' => ['required', 'numeric', 'min:0'],
-            'payment_status' => ['required', Rule::in(['pending', 'paid', 'failed', 'refunded'])],
-            'order_status' => ['required', Rule::in(['pending', 'processing', 'shipped', 'delivered', 'cancelled'])],
-            'payment_method' => ['required', Rule::in(['cash_on_delivery', 'aba', 'credit_card', 'paypal'])],
+            'payment_status' => ['sometimes', Rule::in([
+                OrderModel::PAYMENT_STATUS_PENDING,
+                OrderModel::PAYMENT_STATUS_PAID,
+                OrderModel::PAYMENT_STATUS_FAILED,
+                OrderModel::PAYMENT_STATUS_REFUNDED,
+            ])],
+            'order_status' => ['sometimes', Rule::in([
+                OrderModel::ORDER_STATUS_PENDING,
+                OrderModel::ORDER_STATUS_PAID,
+                OrderModel::ORDER_STATUS_PROCESSING,
+                OrderModel::ORDER_STATUS_SHIPPED,
+                OrderModel::ORDER_STATUS_DELIVERED,
+                OrderModel::ORDER_STATUS_CANCELLED,
+            ])],
         ];
     }
 }

@@ -5,21 +5,50 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\ProductModel;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use RuntimeException;
 use Throwable;
 
 class ProductController extends Controller
 {
+    private function cloudinaryConfigured(): bool
+    {
+        return filled(config('cloudinary.cloud_url'))
+            || (
+                filled(env('CLOUDINARY_CLOUD_NAME'))
+                && filled(env('CLOUDINARY_KEY'))
+                && filled(env('CLOUDINARY_SECRET'))
+            );
+    }
+
     private function uploadProductImage($image): string
     {
-        $upload = Cloudinary::uploadApi()->upload($image->getRealPath(), [
+        if (!class_exists(Cloudinary::class)) {
+            throw new RuntimeException('Cloudinary package is not installed. Run composer install in the backend directory.');
+        }
+
+        if (!$this->cloudinaryConfigured()) {
+            throw new RuntimeException('Cloudinary credentials are missing. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME, CLOUDINARY_KEY, and CLOUDINARY_SECRET in backend/.env.');
+        }
+
+        $upload = Cloudinary::upload($image->getRealPath(), [
             'folder' => 'products',
             'resource_type' => 'image',
         ]);
 
-        return $upload['secure_url'];
+        if (method_exists($upload, 'getSecurePath')) {
+            return $upload->getSecurePath();
+        }
+
+        $uploadData = method_exists($upload, 'getResponse') ? $upload->getResponse() : (array) $upload;
+
+        if (!isset($uploadData['secure_url'])) {
+            throw new RuntimeException('Cloudinary upload succeeded but no secure URL was returned.');
+        }
+
+        return $uploadData['secure_url'];
     }
 
     public function store(ProductRequest $request)
@@ -32,6 +61,7 @@ class ProductController extends Controller
             } catch (Throwable $e) {
                 Log::error('Cloudinary product image upload failed', [
                     'error' => $e->getMessage(),
+                    'configured' => $this->cloudinaryConfigured(),
                 ]);
 
                 return response()->json([
@@ -130,6 +160,7 @@ class ProductController extends Controller
                 Log::error('Cloudinary product image upload failed', [
                     'product_id' => $find->id,
                     'error' => $e->getMessage(),
+                    'configured' => $this->cloudinaryConfigured(),
                 ]);
 
                 return response()->json([

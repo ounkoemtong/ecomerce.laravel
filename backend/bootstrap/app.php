@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Middleware\EnsureUserHasRole;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,10 +16,41 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->statefulApi();
+
+        $middleware->validateCsrfTokens(except: [
+            'api/chat',
+        ]);
+
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (AuthorizationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'This action is unauthorized.',
+                'errors' => [],
+                'data' => [],
+            ], 403);
+        });
+
+        $exceptions->render(function (AccessDeniedHttpException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'This action is unauthorized.',
+                'errors' => [],
+                'data' => [],
+            ], 403);
+        });
+
+        $exceptions->render(function (ValidationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The given data was invalid.',
+                'errors' => $exception->errors(),
+                'data' => [],
+            ], 422);
+        });
     })->create();

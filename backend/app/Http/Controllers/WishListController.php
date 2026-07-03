@@ -8,114 +8,98 @@ use Illuminate\Support\Facades\Validator;
 
 class WishListController extends Controller
 {
+    private function validateWishlist(Request $request): array
+    {
+        return Validator::make($request->all(), [
+            'product_id' => 'required|integer|exists:products,id',
+        ])->validate();
+    }
+
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $this->authorize('create', WishListModel::class);
 
-            'user_id' => 'required|integer|exists:users,id',
-            'product_id' => 'required|integer|exists:products,id',
+        $validated = $this->validateWishlist($request);
+        $userId = $request->user()->role?->name === 'admin' && $request->filled('user_id')
+            ? (int) $request->user_id
+            : (int) $request->user()->id;
 
+        $wishlist = WishListModel::firstOrCreate([
+            'user_id' => $userId,
+            'product_id' => $validated['product_id'],
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'validator error !',
-                'error' => $validator->errors()
-            ]);
+        return $this->successResponse('Wishlist item saved successfully.', [
+            'wishlist' => $wishlist,
+        ], 201);
+    }
+
+    public function index(Request $request)
+    {
+        $this->authorize('viewAny', WishListModel::class);
+
+        $query = WishListModel::query()->latest();
+
+        if ($request->user()->role?->name !== 'admin') {
+            $query->where('user_id', $request->user()->id);
+        } elseif ($request->filled('user_id')) {
+            $query->where('user_id', $request->integer('user_id'));
         }
 
-        $Wishlist = WishListModel::create([
-            'user_id' => $request->user_id,
-            'product_id' => $request->product_id
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'create wishlist successfully  !',
-            'WishList' => $Wishlist,
+        return $this->successResponse('Wishlist items found.', [
+            'wishlists' => $query->get(),
         ]);
     }
 
-    public function index()
+    public function show(Request $request, $id)
     {
-        return response()->json([
-            'message' => 'Wishlist found  !',
-            'Wishlish' => WishListModel::all(),
+        $wishlist = WishListModel::find($id);
+
+        if (!$wishlist) {
+            return $this->errorResponse('Wishlist item not found.', 404);
+        }
+
+        $this->authorize('view', $wishlist);
+
+        return $this->successResponse('Wishlist item found.', [
+            'wishlist' => $wishlist,
         ]);
     }
 
     public function update(Request $request, $id)
     {
-        $find = WishListModel::find($id);
-        $validator = Validator::make($request->all(), [
+        $wishlist = WishListModel::find($id);
 
-            'user_id' => 'required|integer|exists:users,id',
-            'product_id' => 'required|integer|exists:products,id',
-
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'validator error !',
-                'error' => $validator->errors()
-            ]);
+        if (!$wishlist) {
+            return $this->errorResponse('Wishlist item not found.', 404);
         }
 
-        $find->update([
-            'user_id' => $request->user_id,
-            'product_id' => $request->product_id
+        $this->authorize('update', $wishlist);
+
+        $validated = $this->validateWishlist($request);
+        $wishlist->update([
+            'user_id' => $wishlist->user_id,
+            'product_id' => $validated['product_id'],
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'create wishlist successfully  !',
-            'WishList' => $find,
+        return $this->successResponse('Wishlist item updated successfully.', [
+            'wishlist' => $wishlist->fresh(),
         ]);
     }
 
-    public function show($id){
-        $find = WishListModel::find($id);
+    public function destroy(Request $request, $id)
+    {
+        $wishlist = WishListModel::find($id);
 
-        if (!$find){
-            return response()->json([
-                'success'=>false,
-                'message'=>'wishlist not found !',
-
-
-            ]);
+        if (!$wishlist) {
+            return $this->errorResponse('Wishlist item not found.', 404);
         }
 
-        return response()->json([
-            'success'=>true,
-            'message'=>'wishlist found  !',
-            'wishlist'=>$find,
+        $this->authorize('delete', $wishlist);
+        $wishlist->delete();
 
+        return $this->successResponse('Wishlist item deleted successfully.', [
+            'wishlist' => $wishlist,
         ]);
     }
-    public function destroy($id){
-        $find = WishListModel::find($id);
-
-        if (!$find){
-            return response()->json([
-                'success'=>false,
-                'message'=>'wishlist not found  !',
-
-            ]);
-        }
-
-        $find->delete();
-        
-
-        return response()->json([
-            'success'=>false,
-            'message'=>' delete success',
-            'delete '=>$find,
-
-        ]);
-
-    }
-
-
 }

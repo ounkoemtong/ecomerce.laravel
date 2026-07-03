@@ -10,46 +10,45 @@ use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    private function getProductPrice(ProductModel $product)
+    private function getProductPrice(ProductModel $product): float
     {
         if ($product->discount_price && $product->discount_price < $product->price) {
-            return $product->price - $product->discount_price;
+            return (float) $product->discount_price;
         }
 
-        return $product->price;
+        return (float) $product->price;
     }
 
     private function targetUserId(Request $request): int
     {
-        $user = $request->user();
-        $isAdmin = $user && $user->role && $user->role->name === 'admin';
-
-        if ($isAdmin && $request->filled('user_id')) {
+        if ($request->user()->role?->name === 'admin' && $request->filled('user_id')) {
             return (int) $request->user_id;
         }
 
-        return (int) $user->id;
+        return (int) $request->user()->id;
     }
 
     private function syncCartPrice(CartModel $cart, ProductModel $product): CartModel
     {
         $finalPrice = $this->getProductPrice($product);
 
-        if ((float) $cart->price !== (float) $finalPrice) {
+        if ((float) $cart->price !== $finalPrice) {
             $cart->update(['price' => $finalPrice]);
         }
 
         return $cart->load('product');
     }
 
-    private function stockError(ProductModel $product, int $quantity)
+    private function stockError(?ProductModel $product, int $quantity)
     {
+        if (!$product) {
+            return $this->errorResponse('Product not found.', 404);
+        }
+
         if ($quantity > $product->stock_qty) {
-            return response()->json([
-                'success' => false,
-                'message' => 'not enough product stock',
+            return $this->errorResponse('Not enough product stock.', 422, [], [
                 'available_stock' => $product->stock_qty,
-            ], 422);
+            ]);
         }
 
         return null;
@@ -57,22 +56,24 @@ class CartController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('viewAny', CartModel::class);
+
         $carts = CartModel::with('product')
             ->where('user_id', $request->user()->id)
             ->get()
-            ->map(function ($cart) {
+            ->map(function (CartModel $cart) {
                 return $cart->product ? $this->syncCartPrice($cart, $cart->product) : $cart;
             });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'carts found',
+        return $this->successResponse('Carts found.', [
             'carts' => CartResource::collection($carts),
         ]);
     }
 
     public function store(CartRequest $request)
     {
+        $this->authorize('create', CartModel::class);
+
         $userId = $this->targetUserId($request);
         $product = ProductModel::find($request->product_id);
         $cart = CartModel::where('user_id', $userId)
@@ -102,43 +103,28 @@ class CartController extends Controller
             ]);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'cart created successfully',
+        return $this->successResponse('Cart saved successfully.', [
             'cart' => new CartResource($cart->load('product')),
         ], 201);
     }
 
-    public function show($id , Request $request)
+    public function show(Request $request, $id)
     {
         $cart = CartModel::find($id);
 
         if (!$cart) {
-            return response()->json([
-                'success' => false,
-                'message' => 'cart not found',
-            ], 404);
+            return $this->errorResponse('Cart not found.', 404);
         }
 
-        if ($cart->user_id !== $request->user()->id && $request->user()->role?->name !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to access this cart.',
-            ], 403);
-        }
+        $this->authorize('view', $cart);
 
         $product = ProductModel::find($cart->product_id);
 
         if (!$product) {
-            return response()->json([
-                'success' => false,
-                'message' => 'cart product not found',
-            ], 404);
+            return $this->errorResponse('Cart product not found.', 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'cart found',
+        return $this->successResponse('Cart found.', [
             'cart' => new CartResource($this->syncCartPrice($cart, $product)),
         ]);
     }
@@ -148,20 +134,11 @@ class CartController extends Controller
         $cart = CartModel::find($id);
 
         if (!$cart) {
-            return response()->json([
-                'success' => false,
-                'message' => 'cart not found',
-            ], 404);
+            return $this->errorResponse('Cart not found.', 404);
         }
 
-        if ($cart->user_id !== $request->user()->id && $request->user()->role?->name !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to update this cart.',
-            ], 403);
-        }
+        $this->authorize('update', $cart);
 
-        $userId = $this->targetUserId($request);
         $product = ProductModel::find($request->product_id);
         $stockError = $this->stockError($product, $request->quantity);
 
@@ -169,18 +146,14 @@ class CartController extends Controller
             return $stockError;
         }
 
-        $price = $this->getProductPrice($product);
-
         $cart->update([
-            'user_id' => $userId,
+            'user_id' => $cart->user_id,
             'product_id' => $request->product_id,
             'quantity' => $request->quantity,
-            'price' => $price,
+            'price' => $this->getProductPrice($product),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'cart updated successfully',
+        return $this->successResponse('Cart updated successfully.', [
             'cart' => new CartResource($cart->load('product')),
         ]);
     }
@@ -190,24 +163,15 @@ class CartController extends Controller
         $cart = CartModel::find($id);
 
         if (!$cart) {
-            return response()->json([
-                'success' => false,
-                'message' => 'cart not found',
-            ], 404);
+            return $this->errorResponse('Cart not found.', 404);
         }
 
-        if ($cart->user_id !== $request->user()->id && $request->user()->role?->name !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to delete this cart.',
-            ], 403);
-        }
+        $this->authorize('delete', $cart);
 
         $cart->delete();
-        return response()->json([
-            'success' => true,
-            'message' => 'cart deleted successfully',
-            'delete' => $cart,
+
+        return $this->successResponse('Cart deleted successfully.', [
+            'cart' => $cart,
         ]);
     }
 }

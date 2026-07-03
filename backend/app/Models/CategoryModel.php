@@ -11,7 +11,7 @@ class CategoryModel extends Model
         'name',
         'slug',
         'description',
+        'image',
         'status',
-        
     ];
 }

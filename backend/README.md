@@ -1,59 +1,241 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# E-Commerce Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This backend is a Laravel 12 API for an e-commerce project. It already covers the main store entities like users, roles, products, brands, categories, carts, wishlists, reviews, addresses, orders, payments, and shipping.
 
-## About Laravel
+The project uses:
+- Laravel 12
+- PHP 8.2+
+- Laravel Sanctum for API authentication
+- Cloudinary for product image uploads
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Current Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Implemented API areas:
+- Authentication: register, login, logout
+- Catalog: categories, brands, products
+- User features: addresses, carts, wishlists, reviews
+- Order flow: create order from cart, order listing, order detail
+- Admin features: manage users, roles, products, product images, orders, payments, shipping, categories, brands
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Current behavior already visible in the code:
+- Public product listing supports search, filtering, sorting, and pagination
+- Cart price sync respects discount pricing
+- Checkout creates order items from the cart and reduces stock
+- Admin routes are protected with role middleware
 
-## Learning Laravel
+## Project Structure
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Important folders:
+- `app/Http/Controllers`: API and business flow controllers
+- `app/Http/Requests`: validation rules
+- `app/Http/Resources`: API response transformers
+- `app/Models`: Eloquent models
+- `database/migrations`: schema
+- `database/seeders`: sample data
+- `routes/api.php`: API routes
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Roles
 
-## Laravel Sponsors
+The app currently works with these main roles:
+- `admin`: full management access
+- `user`: normal customer access
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+In the current implementation, new users are registered as normal users by default.
 
-### Premium Partners
+## Quick Start
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+1. Install PHP dependencies:
 
-## Contributing
+```bash
+composer install
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+2. Create environment file:
 
-## Code of Conduct
+```bash
+copy .env.example .env
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+3. Generate app key:
 
-## Security Vulnerabilities
+```bash
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+4. Configure `.env`:
+- database connection
+- Cloudinary credentials
+- cache/session/queue driver
 
-## License
+5. Run migrations and seeders:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan migrate --seed
+```
+
+6. Start the backend:
+
+```bash
+php artisan serve
+```
+
+7. If using the frontend assets in this backend:
+
+```bash
+npm install
+npm run dev
+```
+
+## Default Development Command
+
+This project includes a combined development script:
+
+```bash
+composer run dev
+```
+
+It starts:
+- Laravel server
+- queue listener
+- log watcher
+- Vite dev server
+
+## Main API Groups
+
+Public routes:
+- `POST /api/register`
+- `POST /api/login`
+- `GET /api/categories`
+- `GET /api/brands`
+- `GET /api/products`
+
+Authenticated user routes:
+- `POST /api/logout`
+- `apiResource /api/address`
+- `apiResource /api/carts`
+- `apiResource /api/reviews`
+- `apiResource /api/wishlists`
+- `GET|POST|SHOW /api/orders`
+
+Admin routes:
+- `apiResource /api/roles`
+- `apiResource /api/users`
+- write access for categories, brands, products
+- `apiResource /api/product-images`
+- update and delete for orders
+- `apiResource /api/payments`
+- `apiResource /api/shippings`
+
+## Useful Product Query Parameters
+
+The product listing currently supports:
+- `search`
+- `category_id`
+- `brand_id`
+- `status`
+- `min_price`
+- `max_price`
+- `sort`
+- `per_page`
+
+Example:
+
+```text
+/api/products?search=shoe&category_id=1&min_price=20&max_price=100&sort=price_low&per_page=12
+```
+
+## What Still Needs Work
+
+The backend has a good CRUD foundation, but it still needs stronger production-level workflow logic.
+
+Highest-value gaps:
+- ownership validation for things like `address_id` during checkout
+- stronger policies so users can only change their own resources
+- full payment flow instead of only payment fields
+- order cancellation and stock restoration
+- consistent API response format
+- real automated feature tests
+- project-specific API documentation
+
+## Recommended Build Order
+
+If you want to improve this project step by step, this is the order I recommend.
+
+### Phase 1: Stabilize Core Flows
+
+1. Replace weak ownership checks with stricter authorization
+2. Validate that checkout address belongs to the authenticated user
+3. Make `payment_method` required during checkout
+4. Stop trusting client-provided values like shipping fee unless verified by backend logic
+5. Add consistent 403 and 422 behavior across controllers
+
+### Phase 2: Complete Order Lifecycle
+
+1. Add order status transitions:
+   `pending`, `paid`, `shipped`, `delivered`, `cancelled`
+2. Add payment status transitions:
+   `pending`, `paid`, `failed`, `refunded`
+3. Restore stock when an order is cancelled or fails
+4. Add cancellation rules for users and admins
+5. Record payment attempts and failures
+
+### Phase 3: Improve Product Experience
+
+1. Add featured products
+2. Add review summary and average rating per product
+3. Add related products by category or brand
+4. Add inventory labels like `in_stock`, `low_stock`, `out_of_stock`
+5. Add slug support for cleaner product URLs
+
+### Phase 4: Add Test Coverage
+
+Start with feature tests for:
+- register/login/logout
+- product listing and filters
+- cart create/update/delete
+- checkout success
+- checkout failure when stock is low
+- admin-only route protection
+
+## Suggested Next 3 Days
+
+### Day 1
+- clean up README and API understanding
+- tighten route protection and ownership checks
+- improve `OrderStoreRequest`
+
+### Day 2
+- implement order cancellation and stock restoration
+- connect payment state with order state
+- standardize API responses
+
+### Day 3
+- add feature tests for auth, cart, and orders
+- document sample requests
+- prepare admin dashboard summary endpoints
+
+## Environment Notes
+
+Before running image upload features, make sure Cloudinary values are configured in `.env`.
+
+Before testing authenticated APIs, make sure Sanctum is installed and personal access tokens table has been migrated.
+
+## Current Testing Status
+
+The backend currently appears to still have default example tests, so proper feature coverage should be added before calling the project production-ready.
+
+## Suggested Next Task
+
+The best next coding task for this codebase is:
+
+`secure checkout and ownership validation`
+
+That work would include:
+- verifying `address_id` belongs to the current user
+- preventing non-admin users from acting on behalf of another user
+- tightening order and cart update rules
+- adding tests around those flows
+
+
+don't forget use cloudinary :
+composer require cloudinary/cloudinary_php

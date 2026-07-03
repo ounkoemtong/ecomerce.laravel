@@ -2,70 +2,96 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OrderModel;
 use App\Models\ReviewModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ReviewController extends Controller
 {
-    public function index()
+    private function validateReview(Request $request, bool $isUpdate = false): array
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'reviews found',
-            'reviews' => ReviewModel::all(),
+        return Validator::make($request->all(), [
+            'product_id' => ($isUpdate ? 'sometimes' : 'required') . '|integer|exists:products,id',
+            'order_id' => ($isUpdate ? 'sometimes' : 'required') . '|integer|exists:orders,id',
+            'rating' => ($isUpdate ? 'sometimes' : 'required') . '|integer|min:1|max:5',
+            'comment' => ($isUpdate ? 'sometimes' : 'required') . '|string',
+            'status' => 'sometimes|in:pending,approved,rejected',
+        ])->validate();
+    }
+
+    private function ensureReviewOrderOwnership(Request $request, int $orderId): ?\Illuminate\Http\JsonResponse
+    {
+        $order = OrderModel::find($orderId);
+
+        if (!$order) {
+            return $this->errorResponse('Order not found.', 404);
+        }
+
+        if ($request->user()->role?->name !== 'admin' && $order->user_id !== $request->user()->id) {
+            return $this->errorResponse('You do not have permission to review this order.', 403);
+        }
+
+        return null;
+    }
+
+    public function index(Request $request)
+    {
+        $this->authorize('viewAny', ReviewModel::class);
+
+        $query = ReviewModel::query()->latest();
+
+        if ($request->user()->role?->name !== 'admin') {
+            $query->where('user_id', $request->user()->id);
+        } elseif ($request->filled('user_id')) {
+            $query->where('user_id', $request->integer('user_id'));
+        }
+
+        return $this->successResponse('Reviews found.', [
+            'reviews' => $query->get(),
         ]);
     }
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'user_id' => 'required|integer|exists:users,id',
-            'product_id' => 'required|integer|exists:products,id',
-            'order_id' => 'required|integer|exists:orders,id',
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string',
-            'status' => 'nullable|in:pending,approved,rejected',
-        ]);
+        $this->authorize('create', ReviewModel::class);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'validator error',
-                'error' => $validator->errors(),
-            ], 422);
+        $validated = $this->validateReview($request);
+        $ownershipError = $this->ensureReviewOrderOwnership($request, $validated['order_id']);
+
+        if ($ownershipError) {
+            return $ownershipError;
         }
 
+        $userId = $request->user()->role?->name === 'admin' && $request->filled('user_id')
+            ? (int) $request->user_id
+            : (int) $request->user()->id;
+
         $review = ReviewModel::create([
-            'user_id' => $request->user_id,
-            'product_id' => $request->product_id,
-            'order_id' => $request->order_id,
-            'rating' => $request->rating,
-            'comment' => $request->comment,
-            'status' => $request->status ?? 'pending',
+            'user_id' => $userId,
+            'product_id' => $validated['product_id'],
+            'order_id' => $validated['order_id'],
+            'rating' => $validated['rating'],
+            'comment' => $validated['comment'],
+            'status' => $validated['status'] ?? 'pending',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'review created successfully',
+        return $this->successResponse('Review created successfully.', [
             'review' => $review,
         ], 201);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $review = ReviewModel::find($id);
 
         if (!$review) {
-            return response()->json([
-                'success' => false,
-                'message' => 'review not found',
-            ], 404);
+            return $this->errorResponse('Review not found.', 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'review found',
+        $this->authorize('view', $review);
+
+        return $this->successResponse('Review found.', [
             'review' => $review,
         ]);
     }
@@ -75,62 +101,43 @@ class ReviewController extends Controller
         $review = ReviewModel::find($id);
 
         if (!$review) {
-            return response()->json([
-                'success' => false,
-                'message' => 'review not found',
-            ], 404);
+            return $this->errorResponse('Review not found.', 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'user_id' => 'required|integer|exists:users,id',
-            'product_id' => 'required|integer|exists:products,id',
-            'order_id' => 'required|integer|exists:orders,id',
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string',
-            'status' => 'required|in:pending,approved,rejected',
-        ]);
+        $this->authorize('update', $review);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'validator error',
-                'error' => $validator->errors(),
-            ], 422);
+        $validated = $this->validateReview($request, true);
+
+        if (isset($validated['order_id'])) {
+            $ownershipError = $this->ensureReviewOrderOwnership($request, $validated['order_id']);
+
+            if ($ownershipError) {
+                return $ownershipError;
+            }
         }
 
-        $review->update([
-            'user_id' => $request->user_id,
-            'product_id' => $request->product_id,
-            'order_id' => $request->order_id,
-            'rating' => $request->rating,
-            'comment' => $request->comment,
-            'status' => $request->status,
-        ]);
+        $review->update(array_merge($validated, [
+            'user_id' => $review->user_id,
+        ]));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'review updated successfully',
-            'review' => $review,
+        return $this->successResponse('Review updated successfully.', [
+            'review' => $review->fresh(),
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $review = ReviewModel::find($id);
 
         if (!$review) {
-            return response()->json([
-                'success' => false,
-                'message' => 'review not found',
-            ], 404);
+            return $this->errorResponse('Review not found.', 404);
         }
 
+        $this->authorize('delete', $review);
         $review->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'review deleted successfully',
-            'delete' => $review,
+        return $this->successResponse('Review deleted successfully.', [
+            'review' => $review,
         ]);
     }
 }

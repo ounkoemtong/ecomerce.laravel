@@ -1,100 +1,278 @@
 import googleLogo from '../../../assets/images/image.png'
 import { Link } from 'react-router-dom'
+import { useAuth, useRegisterForm } from '../auth.hooks'
+import { useTheme } from '../../../context/ThemeContext'
+import { FaSun, FaMoon } from 'react-icons/fa'
 
 function RegisterPage() {
+  const { isAuthenticated } = useAuth()
+  const { values, updateField, handleSubmit, fieldErrors, formError, isSubmitting } =
+    useRegisterForm()
+  const { isDark, toggleTheme } = useTheme()
+
+  if (isAuthenticated) {
+    return (
+      <div className={`min-h-screen px-4 py-12 transition-all duration-300 ${
+        isDark 
+          ? "bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.15),_transparent_35%),linear-gradient(135deg,_#070707_0%,_#111111_45%,_#040404_100%)] text-stone-100" 
+          : "bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.1),_transparent_35%),linear-gradient(135deg,_#fbf9f6_0%,_#f5f2eb_45%,_#ece7df_100%)] text-stone-900"
+      }`}>
+        {/* Floating Theme Toggle */}
+        <div className="absolute top-5 right-5 z-50">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`flex h-10 w-10 items-center justify-center rounded-full border transition shadow-[0_8px_32px_rgba(0,0,0,0.15)] cursor-pointer ${
+              isDark 
+                ? "border-white/10 bg-stone-900 text-stone-300 hover:bg-stone-800 hover:text-amber-300" 
+                : "border-black/10 bg-white text-stone-700 hover:bg-stone-50 hover:text-amber-600"
+            }`}
+            aria-label="Toggle theme"
+          >
+            {isDark ? <FaSun className="h-4 w-4" /> : <FaMoon className="h-4 w-4" />}
+          </button>
+        </div>
+
+        <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-2xl items-center justify-center">
+          <div className={`w-full border p-8 text-center sm:p-10 transition duration-300 ${
+            isDark 
+              ? "border-white/10 bg-stone-900 text-stone-100 shadow-[0_24px_80px_rgba(0,0,0,0.45)]" 
+              : "border-black/10 bg-white text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.05)]"
+          }`}>
+            <p className={`text-xs uppercase tracking-[0.4em] ${isDark ? "text-amber-200/70" : "text-amber-600"}`}>
+              Account Ready
+            </p>
+            <h1 className={`mt-4 font-serif text-4xl sm:text-5xl ${isDark ? "text-white" : "text-stone-900"}`}>
+              Registration completed successfully.
+            </h1>
+            <p className={`mt-4 text-sm leading-6 sm:text-base ${isDark ? "text-stone-300" : "text-stone-700"}`}>
+              The new account is authenticated already, so you can continue from the
+              signed-in screen on the main route.
+            </p>
+            <Link
+              to="/"
+              className={`mt-8 inline-block px-6 py-3 text-sm font-semibold uppercase tracking-[0.3em] transition ${
+                isDark 
+                  ? "bg-amber-500 text-black hover:bg-amber-400" 
+                  : "bg-stone-900 text-white hover:bg-stone-800"
+              }`}
+            >
+              Go To Account
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.15),_transparent_35%),linear-gradient(135deg,_#070707_0%,_#111111_45%,_#040404_100%)] text-stone-100">
+    <div className={`min-h-screen transition-all duration-300 ${
+      isDark 
+        ? "bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.15),_transparent_35%),linear-gradient(135deg,_#070707_0%,_#111111_45%,_#040404_100%)] text-stone-100" 
+        : "bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.1),_transparent_35%),linear-gradient(135deg,_#fbf9f6_0%,_#f5f2eb_45%,_#ece7df_100%)] text-stone-900"
+    }`}>
+      {/* Floating Theme Toggle */}
+      <div className="absolute top-5 left-5 z-50 lg:left-10">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className={`flex h-10 w-10 items-center justify-center rounded-full border transition shadow-[0_8px_32px_rgba(0,0,0,0.15)] cursor-pointer ${
+            isDark 
+              ? "border-white/10 bg-stone-900 text-stone-300 hover:bg-stone-800 hover:text-amber-300" 
+              : "border-black/10 bg-white text-stone-700 hover:bg-stone-50 hover:text-amber-600"
+          }`}
+          aria-label="Toggle theme"
+        >
+          {isDark ? <FaSun className="h-4 w-4" /> : <FaMoon className="h-4 w-4" />}
+        </button>
+      </div>
+
       <div className="grid min-h-screen lg:grid-cols-[0.95fr_1.05fr]">
         <section className="flex items-center justify-center px-4 py-8 sm:px-6 lg:px-10">
-          <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-8 lg:p-10">
+          <div className={`w-full max-w-2xl border p-6 sm:p-8 lg:p-10 transition duration-300 ${
+            isDark 
+              ? "border-white/10 bg-stone-950 shadow-[0_24px_80px_rgba(0,0,0,0.45)]" 
+              : "border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.05)]"
+          }`}>
             <div className="mb-8 lg:hidden">
-              <p className="text-[0.65rem] uppercase tracking-[0.45em] text-amber-200/70">
+              <p className={`text-[0.65rem] uppercase tracking-[0.45em] ${isDark ? "text-amber-200/70" : "text-amber-600"}`}>
                 Atelier House
               </p>
-              <h1 className="mt-3 font-serif text-3xl text-white">ATELIER</h1>
+              <h1 className={`mt-3 font-serif text-3xl ${isDark ? "text-white" : "text-stone-900"}`}>ATELIER</h1>
             </div>
 
             <div className="mb-8">
-              <p className="text-xs uppercase tracking-[0.4em] text-stone-400">
+              <p className={`text-xs uppercase tracking-[0.4em] ${isDark ? "text-stone-400" : "text-stone-500"}`}>
                 Create Your Account
               </p>
-              <h2 className="mt-3 font-serif text-4xl text-white sm:text-5xl">
+              <h2 className={`mt-3 font-serif text-4xl sm:text-5xl ${isDark ? "text-white" : "text-stone-900"}`}>
                 Sign Up
               </h2>
-              <p className="mt-3 max-w-lg text-sm leading-6 text-stone-400 sm:text-base">
+              <p className={`mt-3 max-w-lg text-sm leading-6 sm:text-base ${isDark ? "text-stone-400" : "text-stone-600"}`}>
                 Start your account to save favorites, track orders, and unlock
                 exclusive drops.
               </p>
             </div>
 
-            <form className="space-y-5">
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              {formError ? (
+                <div className={`border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm ${
+                  isDark ? "text-red-100" : "text-black"
+                }`}>
+                  {formError}
+                </div>
+              ) : null}
+
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
-                  <label className="block text-xs uppercase tracking-[0.25em] text-stone-400">
+                  <label className={`block text-xs uppercase tracking-[0.25em] ${isDark ? "text-stone-400" : "text-stone-600"}`}>
                     Full Name
                   </label>
                   <input
+                    name="name"
                     type="text"
                     placeholder="Enter your full name"
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-amber-400/70 focus:bg-black/40"
+                    value={values.name}
+                    onChange={updateField}
+                    className={`w-full border px-4 py-4 text-sm outline-none transition placeholder:text-stone-500 focus:bg-transparent ${
+                      isDark 
+                        ? "border-white/10 bg-black/30 text-white focus:border-amber-400/70" 
+                        : "border-black/10 bg-white/60 text-stone-900 focus:border-amber-600/70"
+                    }`}
                   />
+                  {fieldErrors.name ? (
+                    <p className={`text-sm ${isDark ? "text-red-500" : "text-black"}`}>{fieldErrors.name}</p>
+                  ) : null}
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">
-                  <label className="block text-xs uppercase tracking-[0.25em] text-stone-400">
+                  <label className={`block text-xs uppercase tracking-[0.25em] ${isDark ? "text-stone-400" : "text-stone-600"}`}>
                     Email Address
                   </label>
                   <input
+                    name="email"
                     type="email"
                     placeholder="Enter your email"
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-amber-400/70 focus:bg-black/40"
+                    value={values.email}
+                    onChange={updateField}
+                    className={`w-full border px-4 py-4 text-sm outline-none transition placeholder:text-stone-500 focus:bg-transparent ${
+                      isDark 
+                        ? "border-white/10 bg-black/30 text-white focus:border-amber-400/70" 
+                        : "border-black/10 bg-white/60 text-stone-900 focus:border-amber-600/70"
+                    }`}
                   />
+                  {fieldErrors.email ? (
+                    <p className={`text-sm ${isDark ? "text-red-500" : "text-black"}`}>{fieldErrors.email}</p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <label className={`block text-xs uppercase tracking-[0.25em] ${isDark ? "text-stone-400" : "text-stone-600"}`}>
+                    Phone Number
+                  </label>
+                  <input
+                    name="phone"
+                    type="text"
+                    placeholder="Enter your phone number"
+                    value={values.phone}
+                    onChange={updateField}
+                    className={`w-full border px-4 py-4 text-sm outline-none transition placeholder:text-stone-500 focus:bg-transparent ${
+                      isDark 
+                        ? "border-white/10 bg-black/30 text-white focus:border-amber-400/70" 
+                        : "border-black/10 bg-white/60 text-stone-900 focus:border-amber-600/70"
+                    }`}
+                  />
+                  {fieldErrors.phone ? (
+                    <p className={`text-sm ${isDark ? "text-red-500" : "text-black"}`}>{fieldErrors.phone}</p>
+                  ) : null}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-xs uppercase tracking-[0.25em] text-stone-400">
+                  <label className={`block text-xs uppercase tracking-[0.25em] ${isDark ? "text-stone-400" : "text-stone-600"}`}>
                     Password
                   </label>
                   <input
+                    name="password"
                     type="password"
                     placeholder="Create a password"
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-amber-400/70 focus:bg-black/40"
+                    value={values.password}
+                    onChange={updateField}
+                    className={`w-full border px-4 py-4 text-sm outline-none transition placeholder:text-stone-500 focus:bg-transparent ${
+                      isDark 
+                        ? "border-white/10 bg-black/30 text-white focus:border-amber-400/70" 
+                        : "border-black/10 bg-white/60 text-stone-900 focus:border-amber-600/70"
+                    }`}
                   />
+                  {fieldErrors.password ? (
+                    <p className={`text-sm ${isDark ? "text-red-500" : "text-black"}`}>{fieldErrors.password}</p>
+                  ) : null}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-xs uppercase tracking-[0.25em] text-stone-400">
+                  <label className={`block text-xs uppercase tracking-[0.25em] ${isDark ? "text-stone-400" : "text-stone-600"}`}>
                     Confirm Password
                   </label>
                   <input
+                    name="confirmPassword"
                     type="password"
                     placeholder="Confirm your password"
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-amber-400/70 focus:bg-black/40"
+                    value={values.confirmPassword}
+                    onChange={updateField}
+                    className={`w-full border px-4 py-4 text-sm outline-none transition placeholder:text-stone-500 focus:bg-transparent ${
+                      isDark 
+                        ? "border-white/10 bg-black/30 text-white focus:border-amber-400/70" 
+                        : "border-black/10 bg-white/60 text-stone-900 focus:border-amber-600/70"
+                    }`}
                   />
+                  {fieldErrors.confirmPassword ? (
+                    <p className={`text-sm ${isDark ? "text-red-500" : "text-black"}`}>{fieldErrors.confirmPassword}</p>
+                  ) : null}
                 </div>
               </div>
 
-              <label className="flex items-start gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-4 text-sm leading-6 text-stone-400">
-                <input type="checkbox" className="mt-1 h-4 w-4 accent-amber-500" />
+              <label className={`flex items-start gap-3 border px-4 py-4 text-sm leading-6 transition ${
+                isDark 
+                  ? "border-white/8 bg-black/20 text-stone-400" 
+                  : "border-black/8 bg-white/40 text-stone-600"
+              }`}>
+                <input
+                  name="acceptTerms"
+                  type="checkbox"
+                  checked={values.acceptTerms}
+                  onChange={updateField}
+                  className="mt-1 h-4 w-4 accent-amber-500"
+                />
                 <span>
                   I agree to the Terms &amp; Conditions and Privacy Policy for
                   account creation and order updates.
                 </span>
               </label>
+              {fieldErrors.acceptTerms ? (
+                <p className={`text-sm ${isDark ? "text-red-500" : "text-black"}`}>{fieldErrors.acceptTerms}</p>
+              ) : null}
 
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-amber-500 px-4 py-4 text-sm font-semibold uppercase tracking-[0.35em] text-black transition hover:bg-amber-400"
+                disabled={isSubmitting}
+                className={`w-full px-4 py-4 text-sm font-semibold uppercase tracking-[0.35em] transition ${
+                  isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                } ${
+                  isDark 
+                    ? "bg-amber-500 text-black hover:bg-amber-400" 
+                    : "bg-stone-900 text-white hover:bg-stone-800"
+                }`}
               >
-                Create Account
+                {isSubmitting ? 'Creating Account...' : 'Create Account'}
               </button>
 
               <div className="relative py-1">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/10" />
+                  <div className={`w-full border-t ${isDark ? "border-white/10" : "border-black/10"}`} />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-stone-950/80 px-4 text-xs uppercase tracking-[0.3em] text-stone-500">
+                  <span className={`px-4 text-xs uppercase tracking-[0.3em] ${
+                    isDark ? "bg-stone-950/80 text-stone-500" : "bg-white/90 text-stone-400"
+                  }`}>
                     Or sign up with
                   </span>
                 </div>
@@ -102,7 +280,11 @@ function RegisterPage() {
 
               <button
                 type="button"
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/4 px-4 py-4 text-sm text-stone-200 transition hover:border-amber-300/40 hover:bg-white/8"
+                className={`flex w-full items-center justify-center gap-3 border px-4 py-4 text-sm transition ${
+                  isDark 
+                    ? "border-white/10 bg-white/4 text-stone-200 hover:border-amber-300/40 hover:bg-white/8" 
+                    : "border-black/10 bg-white text-stone-700 hover:border-stone-900 hover:bg-stone-50"
+                }`}
               >
                 <img
                   src={googleLogo}
@@ -113,9 +295,9 @@ function RegisterPage() {
               </button>
             </form>
 
-            <p className="mt-8 text-center text-sm text-stone-400">
+            <p className={`mt-8 text-center text-sm ${isDark ? "text-stone-400" : "text-stone-600"}`}>
               Already have an account?{' '}
-              <Link to="/login" className="text-white transition hover:text-amber-300">
+              <Link to="/login" className={`transition font-semibold ${isDark ? "text-white hover:text-amber-300" : "text-stone-900 hover:text-amber-600"}`}>
                 Sign In
               </Link>
             </p>
@@ -150,11 +332,11 @@ function RegisterPage() {
             </div>
 
             <div className="grid max-w-md grid-cols-2 gap-4 text-sm text-stone-300/85">
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
                 <p className="font-serif text-3xl text-white">Fast</p>
                 <p className="mt-2 uppercase tracking-[0.3em]">Checkout</p>
               </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
                 <p className="font-serif text-3xl text-white">Private</p>
                 <p className="mt-2 uppercase tracking-[0.3em]">Profile</p>
               </div>

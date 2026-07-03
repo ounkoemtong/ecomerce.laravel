@@ -15,9 +15,11 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WishListController;
+use App\Http\Controllers\ChatController;
 
-Route::post('/register',[AuthController::class,'Register']);
+Route::post('/register',[AuthController::class,'Register'])->middleware('throttle:register');
 Route::post('/login',[AuthController::class,"login"]);
+Route::post('/chat', [ChatController::class, 'chat']);
 
 Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
 Route::apiResource('brands', BrandController::class)->only(['index', 'show']);
@@ -25,6 +27,7 @@ Route::apiResource('products', ProductController::class)->only(['index', 'show']
 
 
 Route::middleware('auth:sanctum')->group(function(){
+    Route::get('/me',[AuthController::class,'me']);
     Route::post('/logout',[AuthController::class,'logout']);
 
     Route::apiResource('address',AddressController::class);

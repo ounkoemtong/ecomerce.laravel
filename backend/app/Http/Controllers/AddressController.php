@@ -8,126 +8,107 @@ use Illuminate\Support\Facades\Validator;
 
 class AddressController extends Controller
 {
-    public function store(Request $request)
+    private function validateAddress(Request $request): array
     {
-        $validator = Validator::make(
-            $request->all(),
-            [
-                'user_id' => 'required',
-                'full_name' => 'required|string',
-                'phone' => 'required|min:8',
-                'province' => 'required|string',
-                'city' => 'required|string',
-                'district' => 'required|string',
-                'address_line' => 'required|string',
-
-            ]
-        );
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'validate erorr',
-                'error' => $validator->errors(),
-            ], 401);
-        }
-
-        $address = AddressesModel::create([
-            'user_id' => $request->user_id,
-            'full_name' => $request->full_name,
-            'phone' => $request->phone,
-            'province' => $request->province,
-            'city' => $request->city,
-            'district' => $request->district,
-            'address_line' => $request->address_line,
-            'is_default' => false,
-
-        ]);
-
-
-        return response()->json([
-            'success' => true,
-            'message' => 'address created',
-            'address' => $address,
-        ], 200);
+        return Validator::make($request->all(), [
+            'full_name' => 'required|string|max:255',
+            'phone' => 'required|string|min:8|max:30',
+            'province' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'district' => 'required|string|max:255',
+            'address_line' => 'required|string',
+            'is_default' => 'sometimes|boolean',
+        ])->validate();
     }
 
-
-    public function index()
+    public function store(Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'addresss found !',
-            'address' => AddressesModel::all(),
+        $this->authorize('create', AddressesModel::class);
+
+        $validated = $this->validateAddress($request);
+        $userId = $request->user()->role?->name === 'admin' && $request->filled('user_id')
+            ? (int) $request->user_id
+            : (int) $request->user()->id;
+
+        $address = AddressesModel::create([
+            ...$validated,
+            'user_id' => $userId,
+            'is_default' => (bool) ($validated['is_default'] ?? false),
+        ]);
+
+        return $this->successResponse('Address created successfully.', [
+            'address' => $address,
+        ], 201);
+    }
+
+    public function index(Request $request)
+    {
+        $this->authorize('viewAny', AddressesModel::class);
+
+        $query = AddressesModel::query()->latest();
+
+        if ($request->user()->role?->name !== 'admin') {
+            $query->where('user_id', $request->user()->id);
+        } elseif ($request->filled('user_id')) {
+            $query->where('user_id', $request->integer('user_id'));
+        }
+
+        return $this->successResponse('Addresses found.', [
+            'addresses' => $query->get(),
+        ]);
+    }
+
+    public function show(Request $request, $id)
+    {
+        $address = AddressesModel::find($id);
+
+        if (!$address) {
+            return $this->errorResponse('Address not found.', 404);
+        }
+
+        $this->authorize('view', $address);
+
+        return $this->successResponse('Address found.', [
+            'address' => $address,
         ]);
     }
 
     public function update(Request $request, $id)
     {
-        $findID = AddressesModel::find($id);
+        $address = AddressesModel::find($id);
 
-        if (!$findID) {
-            return response()->json([
-                'success' => false,
-                'message' => 'address not found !',
-            ]);
-        }
-        $validator = Validator::make(
-            $request->all(),
-            [
-                'user_id' => 'required',
-                'full_name' => 'required|string',
-                'phone' => 'required|min:8',
-                'province' => 'required|string',
-                'city' => 'required|string',
-                'district' => 'required|string',
-                'address_line' => 'required|string',
-
-            ]
-        );
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'validate erorr',
-                'error' => $validator->errors(),
-            ], 401);
+        if (!$address) {
+            return $this->errorResponse('Address not found.', 404);
         }
 
-        $findID->update([
-            'user_id' => $request->user_id,
-            'full_name' => $request->full_name,
-            'phone' => $request->phone,
-            'province' => $request->province,
-            'city' => $request->city,
-            'district' => $request->district,
-            'address_line' => $request->address_line,
+        $this->authorize('update', $address);
+
+        $validated = $this->validateAddress($request);
+
+        $address->update([
+            ...$validated,
+            'user_id' => $address->user_id,
+            'is_default' => (bool) ($validated['is_default'] ?? $address->is_default),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'address updated successfully',
-            'address' => $findID,
+        return $this->successResponse('Address updated successfully.', [
+            'address' => $address->fresh(),
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $find = AddressesModel::find($id);
+        $address = AddressesModel::find($id);
 
-        if (!$find) {
-            return response()->json([
-                'success' => false,
-                'message' => 'address not found !',
-            ]);
+        if (!$address) {
+            return $this->errorResponse('Address not found.', 404);
         }
 
-        $find->delete();
+        $this->authorize('delete', $address);
+        $address->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'delete success',
-
+        return $this->successResponse('Address deleted successfully.', [
+            'address' => $address,
         ]);
     }
 }
